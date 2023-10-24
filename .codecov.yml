@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2023 Comcast Cable Communications Management, LLC
+# SPDX-License-Identifier: Apache-2.0
 coverage:
   range: 50..80
   round: down
@@ -8,4 +10,4 @@ ignore:
   - "vendor"
 
 fixes:
-  - "github.com/xmidt-org/__PROJECT__/::"
+  - "github.com/xmidt-org/praetor/::"
