@@ -12,8 +12,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-const testAddress = "localhost:1234"
-
 type OptionSuite struct {
 	suite.Suite
 }
