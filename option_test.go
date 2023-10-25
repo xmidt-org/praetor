@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+const testAddress = "localhost:1234"
+
 type OptionSuite struct {
 	suite.Suite
 }
@@ -16,14 +18,14 @@ type OptionSuite struct {
 func (suite *OptionSuite) testAsOptionWithOption() {
 	suite.Run("Success", func() {
 		opt := Option(func(cfg *api.Config) error {
-			cfg.Address = "localhost:1234"
+			cfg.Address = testAddress
 			return nil
 		})
 
 		var cfg api.Config
 		err := AsOption(opt)(&cfg)
 		suite.NoError(err)
-		suite.Equal("localhost:1234", cfg.Address)
+		suite.Equal(testAddress, cfg.Address)
 	})
 
 	suite.Run("Fail", func() {
@@ -41,14 +43,14 @@ func (suite *OptionSuite) testAsOptionWithOption() {
 func (suite *OptionSuite) testAsOptionWithClosure() {
 	suite.Run("Success", func() {
 		opt := func(cfg *api.Config) error {
-			cfg.Address = "localhost:1234"
+			cfg.Address = testAddress
 			return nil
 		}
 
 		var cfg api.Config
 		err := AsOption(opt)(&cfg)
 		suite.NoError(err)
-		suite.Equal("localhost:1234", cfg.Address)
+		suite.Equal(testAddress, cfg.Address)
 	})
 
 	suite.Run("Fail", func() {
@@ -65,25 +67,25 @@ func (suite *OptionSuite) testAsOptionWithClosure() {
 
 func (suite *OptionSuite) testAsOptionNoError() {
 	opt := func(cfg *api.Config) {
-		cfg.Address = "localhost:1234"
+		cfg.Address = testAddress
 	}
 
 	var cfg api.Config
 	err := AsOption(opt)(&cfg)
 	suite.NoError(err)
-	suite.Equal("localhost:1234", cfg.Address)
+	suite.Equal(testAddress, cfg.Address)
 }
 
 func (suite *OptionSuite) testAsOptionCustomType() {
 	type TestFunc func(*api.Config)
 	var opt TestFunc = func(cfg *api.Config) {
-		cfg.Address = "localhost:1234"
+		cfg.Address = testAddress
 	}
 
 	var cfg api.Config
 	err := AsOption(opt)(&cfg)
 	suite.NoError(err)
-	suite.Equal("localhost:1234", cfg.Address)
+	suite.Equal(testAddress, cfg.Address)
 }
 
 func (suite *OptionSuite) TestAsOption() {
