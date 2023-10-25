@@ -5,9 +5,9 @@ package praetor
 
 import (
 	"net/http"
+	"reflect"
 
 	"github.com/hashicorp/consul/api"
-	"go.uber.org/multierr"
 )
 
 // Option is a functional option for tailoring the consul client
@@ -15,14 +15,41 @@ import (
 // *api.Config prior to it being passed to api.NewClient.
 type Option func(*api.Config) error
 
-// AsOption bundles one or more functions into a single Option.
-func AsOption[O ~func(*api.Config) error](opts ...O) Option {
-	return func(cfg *api.Config) (err error) {
-		for _, o := range opts {
-			err = multierr.Append(err, o(cfg))
-		}
+var (
+	optionType        = reflect.TypeOf(Option(nil))
+	noErrorOptionType = reflect.TypeOf((func(*api.Config))(nil))
+)
 
-		return
+// OptionFunc represents the types of functions that can be coerced into Options.
+type OptionFunc interface {
+	~func(*api.Config) error | ~func(*api.Config)
+}
+
+// AsOption coerces a function into an Option.
+func AsOption[OF OptionFunc](of OF) Option {
+	// trivial conversions
+	switch oft := any(of).(type) {
+	case Option:
+		return oft
+
+	case func(*api.Config):
+		return func(cfg *api.Config) error {
+			oft(cfg)
+			return nil
+		}
+	}
+
+	// now we convert to the underlying type
+	ofv := reflect.ValueOf(of)
+	if ofv.CanConvert(optionType) {
+		return ofv.Convert(optionType).Interface().(Option)
+	}
+
+	// there are only (2) types, so the other type must be it
+	f := ofv.Convert(noErrorOptionType).Interface().(func(*api.Config))
+	return func(cfg *api.Config) error {
+		f(cfg)
+		return nil
 	}
 }
 
