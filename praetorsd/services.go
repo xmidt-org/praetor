@@ -127,3 +127,21 @@ func (cs catalogServices) Get(q Query) (a Answer, err error) {
 
 	return
 }
+
+// NewHealthServices produces a Services strategy backed by
+// the client's Health endpoint.  The returned Services will
+// honor the Query.PassingOnly flag.
+func NewHealthServices(client *api.Client) Services {
+	return healthServices{
+		health: client.Health(),
+	}
+}
+
+// NewCatalogServices produces a Services strategy backed by the
+// client's Catalog endpoint.  The returned Services will *NOT*
+// honor the Query.PassingOnly flag.
+func NewCatalogServices(client *api.Client) Services {
+	return catalogServices{
+		catalog: client.Catalog(),
+	}
+}
