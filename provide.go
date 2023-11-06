@@ -8,43 +8,42 @@ import (
 	"go.uber.org/fx"
 )
 
+func provideClientConfig(cfg Config) api.Config { return cfg.Client }
+
+func provideRegistrationConfig(cfg Config) RegistrationConfig { return cfg.Registration }
+
+func provideServiceRegistrations(cfg RegistrationConfig) (ServiceRegistrations, error) {
+	return NewServiceRegistrations(cfg.Services...)
+}
+
+func provideClient(cfg api.Config) (*api.Client, error) {
+	return api.NewClient(&cfg)
+}
+
+func provideAgent(c *api.Client) *api.Agent { return c.Agent() }
+
+func provideAgentRegisterer(a *api.Agent) AgentRegisterer { return a }
+
+func provideAgentRegistrar(ar AgentRegisterer, rc RegistrationConfig, regs ServiceRegistrations, lc fx.Lifecycle) Registrar {
+	r := NewAgentRegistrar(ar, rc.Retry, regs)
+	BindRegistrar(r, lc)
+
+	return r
+}
+
 func Provide() fx.Option {
 	return fx.Options(
 		fx.Provide(
 			fx.Annotate(
-				func(cfg Config) api.Config {
-					return cfg.Client
-				},
+				provideClientConfig,
 				fx.ParamTags(`optional:"true"`),
 			),
-			fx.Annotate(
-				func(cfg Config) RegistrationConfig {
-					return cfg.Registration
-				},
-				fx.ParamTags(`optional:"true"`),
-			),
-			func(cfg api.Config) (*api.Client, error) {
-				return api.NewClient(&cfg)
-			},
-			func(c *api.Client) *api.Agent {
-				return c.Agent()
-			},
-			func(a *api.Agent) AgentRegisterer {
-				return a
-			},
-			func(ar AgentRegisterer, rc RegistrationConfig, lc fx.Lifecycle) (r Registrar, err error) {
-				r, err = NewAgentRegistrar(
-					ar,
-					rc.Retry,
-					rc.Services...,
-				)
-
-				if err == nil {
-					BindRegistrar(r, lc)
-				}
-
-				return
-			},
+			provideRegistrationConfig,
+			provideServiceRegistrations,
+			provideClient,
+			provideAgent,
+			provideAgentRegisterer,
+			provideAgentRegistrar,
 		),
 		fx.Invoke(
 			func(Registrar) {},
