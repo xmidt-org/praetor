@@ -71,6 +71,8 @@ func (sr ServiceRegistration) asAgentServiceRegistration() (asr *api.AgentServic
 }
 
 // ServiceRegistrations is an immutable bundle of ServiceRegistration objects.
+// These registrations will be prevalidated and are ensured to have check
+// identifiers assigned in a predictable, unique way.
 type ServiceRegistrations struct {
 	regs map[ServiceID]ServiceRegistration
 }
@@ -78,6 +80,13 @@ type ServiceRegistrations struct {
 // Len returns the number of registrations contained in this bundle.
 func (sr ServiceRegistrations) Len() int {
 	return len(sr.regs)
+}
+
+// Get retrieves the registration associated with the given id.  This method
+// returns false to indicate that the given id was not present in this bundle.
+func (sr ServiceRegistrations) Get(id ServiceID) (ServiceRegistration, bool) {
+	v, ok := sr.regs[id]
+	return v, ok
 }
 
 // Each applies a visitor function to each registration.  The visitor must
