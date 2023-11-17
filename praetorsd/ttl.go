@@ -52,7 +52,7 @@ func NewTTL(r Registrar, h *Health, regs ServiceRegistrations) (t *TTL, err erro
 			err = multierr.Append(
 				err,
 				fmt.Errorf(
-					"Invalid TTL duration for service [%s] check [%s]: %s",
+					"Invalid TTL duration for service [%s], check [%s]: %s",
 					serviceID,
 					checkID,
 					timeErr,

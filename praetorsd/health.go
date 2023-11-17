@@ -159,11 +159,11 @@ type Health struct {
 // GetCheck returns the current health state for a check.  If checkID is
 // not registered, this method returns a critical HealthState along with
 // ErrNoSuchCheckID.
-func (h *Health) GetCheck(checkID CheckID) (HealthState, error) {
+func (h *Health) GetCheck(id CheckID) (HealthState, error) {
 	defer h.lock.RUnlock()
 	h.lock.RLock()
 
-	check, exists := h.checks[checkID]
+	check, exists := h.checks[id]
 	if !exists {
 		return HealthState{Status: HealthCritical}, ErrNoSuchCheckID
 	}
@@ -200,11 +200,11 @@ func (h *Health) Set(state HealthState) {
 // SetService updates the health state for all checks associated with a given
 // service identifier.  This method returns ErrNoSuchServiceID if serviceID
 // was not registered.
-func (h *Health) SetService(serviceID ServiceID, state HealthState) error {
+func (h *Health) SetService(id ServiceID, state HealthState) error {
 	defer h.lock.Unlock()
 	h.lock.Lock()
 
-	checks, exists := h.services[serviceID]
+	checks, exists := h.services[id]
 	if !exists {
 		return ErrNoSuchServiceID
 	}
@@ -218,12 +218,12 @@ func (h *Health) SetService(serviceID ServiceID, state HealthState) error {
 
 // SetCheck updates a single check's state.  This method returns ErrNoSuchCheckID
 // if checkID was not registered.
-func (h *Health) SetCheck(checkID CheckID, state HealthState) (err error) {
+func (h *Health) SetCheck(id CheckID, state HealthState) (err error) {
 	defer h.lock.Unlock()
 	h.lock.Lock()
 
-	if check, exists := h.checks[checkID]; exists {
-		check.state = state
+	if check, exists := h.checks[id]; exists {
+		check.update(state)
 	} else {
 		err = ErrNoSuchCheckID
 	}
@@ -233,10 +233,10 @@ func (h *Health) SetCheck(checkID CheckID, state HealthState) (err error) {
 
 // getChecks fetches the *healthCheck for each CheckID.  If any identifiers are not
 // found, this method stops early and returns an error.
-func (h *Health) getChecks(checkIDs []CheckID) (checks healthChecks, err error) {
-	checks = make(healthChecks, 0, len(checkIDs))
-	for _, checkID := range checkIDs {
-		check, exists := h.checks[checkID]
+func (h *Health) getChecks(ids []CheckID) (checks healthChecks, err error) {
+	checks = make(healthChecks, 0, len(ids))
+	for _, id := range ids {
+		check, exists := h.checks[id]
 		if !exists {
 			err = ErrNoSuchCheckID
 			break
@@ -257,19 +257,18 @@ func (h *Health) getChecks(checkIDs []CheckID) (checks healthChecks, err error) 
 // Upon successful registration, the given listener will receive one (1) health
 // event for each applicable check.  This event will carry the current state
 // of each check the listener is registered for.
-func (h *Health) AddListener(l HealthListener, checkIDs ...CheckID) (err error) {
+func (h *Health) AddListener(l HealthListener, ids ...CheckID) (err error) {
 	defer h.lock.Unlock()
 	h.lock.Lock()
 
 	switch {
-	case len(checkIDs) == 0:
+	case len(ids) == 0:
 		for _, check := range h.all {
 			check.addListener(l)
 		}
 
 	default:
-		checks, err := h.getChecks(checkIDs)
-		if err == nil {
+		if checks, err := h.getChecks(ids); err == nil {
 			// only add the listener if all checks existed.
 			// this prevents a partial update of this object's state.
 			for _, check := range checks {
@@ -288,19 +287,18 @@ func (h *Health) AddListener(l HealthListener, checkIDs ...CheckID) (err error) 
 //
 // No error is returned if the given listener is not registered or if it is not registered
 // for any supplied check identifiers.
-func (h *Health) RemoveListener(l HealthListener, checkIDs ...CheckID) (err error) {
+func (h *Health) RemoveListener(l HealthListener, ids ...CheckID) (err error) {
 	defer h.lock.Unlock()
 	h.lock.Lock()
 
 	switch {
-	case len(checkIDs) == 0:
+	case len(ids) == 0:
 		for _, check := range h.all {
 			check.removeListener(l)
 		}
 
 	default:
-		checks, err := h.getChecks(checkIDs)
-		if err == nil {
+		if checks, err := h.getChecks(ids); err == nil {
 			// only remove the listener if all checks existed.
 			// this prevents a partial update of this object's state.
 			for _, check := range checks {
