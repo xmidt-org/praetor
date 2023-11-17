@@ -34,6 +34,9 @@ type ServiceRegistration struct {
 	Partition string        `json:"partition" yaml:"partition"`
 	Locality  *api.Locality `json:"locality" yaml:"locality"`
 
+	// RegisterOptions holds the registration options to send to consul.  Note
+	// that this package always set ReplaceExistingChecks to true so that any
+	// checks will be replaced upon reregistration.
 	RegisterOptions   api.ServiceRegisterOpts `json:"registerOptions" yaml:"registerOptions"`
 	DeregisterOptions api.QueryOptions        `json:"deregisterOptions" yaml:"deregisterOptions"`
 }
@@ -143,6 +146,10 @@ func NewServiceRegistrations(regs ...ServiceRegistration) (sr ServiceRegistratio
 				checks[checkID] = true
 			}
 		}
+
+		// always turn on ReplaceExistingChecks, especially since we may have
+		// generated check identifiers.
+		reg.RegisterOptions.ReplaceExistingChecks = true
 
 		sr.regs[serviceID] = reg
 	}
