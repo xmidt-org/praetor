@@ -30,7 +30,7 @@ type ServiceRegistration struct {
 	Meta              map[string]string             `json:"meta" yaml:"meta"`
 	Checks            []api.AgentServiceCheck       `json:"checks" yaml:"checks"`
 
-	Namespace string        `json:"namespace" yaml"namespace"`
+	Namespace string        `json:"namespace" yaml:"namespace"`
 	Partition string        `json:"partition" yaml:"partition"`
 	Locality  *api.Locality `json:"locality" yaml:"locality"`
 

@@ -91,6 +91,7 @@ func Provide() fx.Option {
 					"",
 				),
 			),
+			NewHealth,
 		),
 	)
 }

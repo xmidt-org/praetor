@@ -107,19 +107,25 @@ type healthCheck struct {
 	listeners []HealthListener
 }
 
+func (hc *healthCheck) newEvent() HealthEvent {
+	return HealthEvent{
+		ServiceID: hc.serviceID,
+		CheckID:   hc.checkID,
+		State:     hc.state,
+	}
+}
+
 func (hc *healthCheck) update(state HealthState) {
 	hc.state = state
+	e := hc.newEvent()
 	for _, l := range hc.listeners {
-		l.OnHealthEvent(HealthEvent{
-			ServiceID: hc.serviceID,
-			CheckID:   hc.checkID,
-			State:     hc.state,
-		})
+		l.OnHealthEvent(e)
 	}
 }
 
 func (hc *healthCheck) addListener(l HealthListener) {
 	hc.listeners = append(hc.listeners, l)
+	l.OnHealthEvent(hc.newEvent())
 }
 
 func (hc *healthCheck) removeListener(l HealthListener) {
@@ -187,7 +193,7 @@ func (h *Health) Set(state HealthState) {
 	h.lock.Lock()
 
 	for _, hc := range h.all {
-		hc.state = state
+		hc.update(state)
 	}
 }
 
@@ -204,7 +210,7 @@ func (h *Health) SetService(serviceID ServiceID, state HealthState) error {
 	}
 
 	for _, hc := range checks {
-		hc.state = state
+		hc.update(state)
 	}
 
 	return nil
@@ -225,6 +231,32 @@ func (h *Health) SetCheck(checkID CheckID, state HealthState) (err error) {
 	return
 }
 
+// getChecks fetches the *healthCheck for each CheckID.  If any identifiers are not
+// found, this method stops early and returns an error.
+func (h *Health) getChecks(checkIDs []CheckID) (checks healthChecks, err error) {
+	checks = make(healthChecks, 0, len(checkIDs))
+	for _, checkID := range checkIDs {
+		check, exists := h.checks[checkID]
+		if !exists {
+			err = ErrNoSuchCheckID
+			break
+		}
+
+		checks = append(checks, check)
+	}
+
+	return
+}
+
+// AddListener registers a new HealthListener.  If no checkIDs are supplied, the
+// listener will receive events from all checks.  Otherwise, only events from the
+// given checks will be sent to the listener.  If any supplied CheckID does not
+// exist in this Health instance, the listener is not registered and an error is
+// returned.
+//
+// Upon successful registration, the given listener will receive one (1) health
+// event for each applicable check.  This event will carry the current state
+// of each check the listener is registered for.
 func (h *Health) AddListener(l HealthListener, checkIDs ...CheckID) (err error) {
 	defer h.lock.Unlock()
 	h.lock.Lock()
@@ -236,21 +268,43 @@ func (h *Health) AddListener(l HealthListener, checkIDs ...CheckID) (err error) 
 		}
 
 	default:
-		// check that all ids exist before adding anything
-		checks := make(healthChecks, 0, len(checkIDs))
-		for _, checkID := range checkIDs {
-			check, exists := h.checks[checkID]
-			if !exists {
-				err = ErrNoSuchCheckID
-				break
-			}
-
-			checks = append(checks, check)
-		}
-
+		checks, err := h.getChecks(checkIDs)
 		if err == nil {
+			// only add the listener if all checks existed.
+			// this prevents a partial update of this object's state.
 			for _, check := range checks {
 				check.addListener(l)
+			}
+		}
+	}
+
+	return
+}
+
+// RemoveListener deregisters a HealthListener.  If no checkIDs are supplied, the listener
+// is removed from all checks.  Otherwise, the listener is only removed from the given checks.
+// If any supplied CheckID does not exist, this method does not deregister the listener and
+// returns an error.
+//
+// No error is returned if the given listener is not registered or if it is not registered
+// for any supplied check identifiers.
+func (h *Health) RemoveListener(l HealthListener, checkIDs ...CheckID) (err error) {
+	defer h.lock.Unlock()
+	h.lock.Lock()
+
+	switch {
+	case len(checkIDs) == 0:
+		for _, check := range h.all {
+			check.removeListener(l)
+		}
+
+	default:
+		checks, err := h.getChecks(checkIDs)
+		if err == nil {
+			// only remove the listener if all checks existed.
+			// this prevents a partial update of this object's state.
+			for _, check := range checks {
+				check.removeListener(l)
 			}
 		}
 	}
