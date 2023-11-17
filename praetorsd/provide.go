@@ -56,6 +56,10 @@ func provideAgentRegisterer(in ConsulDependencies) (a AgentRegisterer, err error
 	return in.agent()
 }
 
+func provideAgentTTLer(in ConsulDependencies) (a AgentTTLer, err error) {
+	return in.agent()
+}
+
 func provideServiceRegistrations(cfg RegistrationConfig) (ServiceRegistrations, error) {
 	return NewServiceRegistrations(cfg.Services...)
 }
@@ -74,6 +78,7 @@ func Provide() fx.Option {
 	return fx.Options(
 		fx.Provide(
 			provideAgentRegisterer,
+			provideAgentTTLer,
 			fx.Annotate(
 				provideServiceRegistrations,
 				fx.ParamTags(`optional:"true"`),
