@@ -1,4 +1,7 @@
-package praetor
+// SPDX-FileCopyrightText: 2023 Comcast Cable Communications Management, LLC
+// SPDX-License-Identifier: Apache-2.0
+
+package praetorsd
 
 import (
 	"errors"
@@ -70,6 +73,21 @@ func FromHealthStatusText(text string) HealthStatus {
 	}
 }
 
+// HealthEvent carries information about a health update.  One event
+// will be sent for each check that was affected.  That means that when
+// a service's overall health is updated, multiple events will be dispatched
+// with the same service identifier but different check identifiers.
+type HealthEvent struct {
+	ServiceID ServiceID
+	CheckID   CheckID
+	State     HealthState
+}
+
+// HealthListener represents a sink for health events.
+type HealthListener interface {
+	OnHealthEvent(HealthEvent)
+}
+
 // HealthState is the full state associated with a consul check.
 type HealthState struct {
 	// Status reflects the healthiness of the check.  The default value
@@ -81,6 +99,44 @@ type HealthState struct {
 	Notes string
 }
 
+// healthCheck holds state information about a single check.
+type healthCheck struct {
+	serviceID ServiceID
+	checkID   CheckID
+	state     HealthState
+	listeners []HealthListener
+}
+
+func (hc *healthCheck) update(state HealthState) {
+	hc.state = state
+	for _, l := range hc.listeners {
+		l.OnHealthEvent(HealthEvent{
+			ServiceID: hc.serviceID,
+			CheckID:   hc.checkID,
+			State:     hc.state,
+		})
+	}
+}
+
+func (hc *healthCheck) addListener(l HealthListener) {
+	hc.listeners = append(hc.listeners, l)
+}
+
+func (hc *healthCheck) removeListener(l HealthListener) {
+	last := len(hc.listeners) - 1
+	for i := 0; i <= last; i++ {
+		if hc.listeners[i] == l {
+			hc.listeners[i] = hc.listeners[last]
+			hc.listeners[last] = nil
+			hc.listeners = hc.listeners[:last]
+			break
+		}
+	}
+}
+
+// healthChecks is a collection of healthCheck trackers.
+type healthChecks []*healthCheck
+
 // Health holds health information for registered services.  Implementations
 // are safe for concurrent access.
 //
@@ -89,8 +145,9 @@ type HealthState struct {
 // is left to clients.
 type Health struct {
 	lock     sync.RWMutex
-	checks   map[CheckID]HealthState
-	services map[ServiceID][]CheckID
+	all      healthChecks
+	checks   map[CheckID]*healthCheck
+	services map[ServiceID]healthChecks
 }
 
 // GetCheck returns the current health state for a check.  If checkID is
@@ -100,12 +157,12 @@ func (h *Health) GetCheck(checkID CheckID) (HealthState, error) {
 	defer h.lock.RUnlock()
 	h.lock.RLock()
 
-	state, exists := h.checks[checkID]
+	check, exists := h.checks[checkID]
 	if !exists {
 		return HealthState{Status: HealthCritical}, ErrNoSuchCheckID
 	}
 
-	return state, nil
+	return check.state, nil
 }
 
 // Each applies a visitor function to each check's HealthState.  The check's
@@ -119,37 +176,35 @@ func (h *Health) Each(f func(ServiceID, CheckID, HealthState)) {
 	defer h.lock.RUnlock()
 	h.lock.RLock()
 
-	for serviceID, checkIDs := range h.services {
-		for _, checkID := range checkIDs {
-			f(serviceID, checkID, h.checks[checkID])
-		}
+	for _, hc := range h.all {
+		f(hc.serviceID, hc.checkID, hc.state)
 	}
 }
 
 // Set causes all checks for all services to be set to the given state.
-func (h *Health) Set(hs HealthState) {
+func (h *Health) Set(state HealthState) {
 	defer h.lock.Unlock()
 	h.lock.Lock()
 
-	for checkID := range h.checks {
-		h.checks[checkID] = hs
+	for _, hc := range h.all {
+		hc.state = state
 	}
 }
 
 // SetService updates the health state for all checks associated with a given
 // service identifier.  This method returns ErrNoSuchServiceID if serviceID
 // was not registered.
-func (h *Health) SetService(serviceID ServiceID, hs HealthState) error {
+func (h *Health) SetService(serviceID ServiceID, state HealthState) error {
 	defer h.lock.Unlock()
 	h.lock.Lock()
 
-	checkIDs, exists := h.services[serviceID]
+	checks, exists := h.services[serviceID]
 	if !exists {
 		return ErrNoSuchServiceID
 	}
 
-	for _, checkID := range checkIDs {
-		h.checks[checkID] = hs
+	for _, hc := range checks {
+		hc.state = state
 	}
 
 	return nil
@@ -157,16 +212,50 @@ func (h *Health) SetService(serviceID ServiceID, hs HealthState) error {
 
 // SetCheck updates a single check's state.  This method returns ErrNoSuchCheckID
 // if checkID was not registered.
-func (h *Health) SetCheck(checkID CheckID, hs HealthState) error {
+func (h *Health) SetCheck(checkID CheckID, state HealthState) (err error) {
 	defer h.lock.Unlock()
 	h.lock.Lock()
 
-	if _, exists := h.checks[checkID]; !exists {
-		return ErrNoSuchCheckID
+	if check, exists := h.checks[checkID]; exists {
+		check.state = state
+	} else {
+		err = ErrNoSuchCheckID
 	}
 
-	h.checks[checkID] = hs
-	return nil
+	return
+}
+
+func (h *Health) AddListener(l HealthListener, checkIDs ...CheckID) (err error) {
+	defer h.lock.Unlock()
+	h.lock.Lock()
+
+	switch {
+	case len(checkIDs) == 0:
+		for _, check := range h.all {
+			check.addListener(l)
+		}
+
+	default:
+		// check that all ids exist before adding anything
+		checks := make(healthChecks, 0, len(checkIDs))
+		for _, checkID := range checkIDs {
+			check, exists := h.checks[checkID]
+			if !exists {
+				err = ErrNoSuchCheckID
+				break
+			}
+
+			checks = append(checks, check)
+		}
+
+		if err == nil {
+			for _, check := range checks {
+				check.addListener(l)
+			}
+		}
+	}
+
+	return
 }
 
 // NewHealth constructs an initial Health from a set of registrations.  The returned
@@ -174,26 +263,33 @@ func (h *Health) SetCheck(checkID CheckID, hs HealthState) error {
 // will not be accessible.
 func NewHealth(sr ServiceRegistrations) *Health {
 	h := &Health{
-		checks:   make(map[CheckID]HealthState, sr.Len()), // just an estimate
-		services: make(map[ServiceID][]CheckID, sr.Len()),
+		all:      make(healthChecks, sr.Len()),
+		checks:   make(map[CheckID]*healthCheck, sr.Len()), // just an estimate
+		services: make(map[ServiceID]healthChecks, sr.Len()),
 	}
 
 	sr.Each(func(serviceID ServiceID, reg ServiceRegistration) {
-		for _, check := range reg.Checks {
-			checkID := CheckID(check.CheckID)
-			initial := HealthState{
-				Notes: check.Notes,
+		for _, registeredCheck := range reg.Checks {
+			check := &healthCheck{
+				serviceID: serviceID,
+				checkID:   CheckID(registeredCheck.CheckID),
+
+				// the initial state of this check
+				state: HealthState{
+					Notes: registeredCheck.Notes,
+				},
 			}
 
-			if len(check.Status) > 0 {
-				initial.Status = FromHealthStatusText(check.Status)
-				if initial.Status == HealthAny {
-					initial.Status = HealthPassing
+			if len(registeredCheck.Status) > 0 {
+				check.state.Status = FromHealthStatusText(registeredCheck.Status)
+				if check.state.Status == HealthAny {
+					check.state.Status = HealthPassing
 				}
 			}
 
-			h.checks[checkID] = initial
-			h.services[serviceID] = append(h.services[serviceID], checkID)
+			h.all = append(h.all, check)
+			h.checks[check.checkID] = check
+			h.services[check.serviceID] = append(h.services[serviceID], check)
 		}
 	})
 

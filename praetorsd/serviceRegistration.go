@@ -1,4 +1,7 @@
-package praetor
+// SPDX-FileCopyrightText: 2023 Comcast Cable Communications Management, LLC
+// SPDX-License-Identifier: Apache-2.0
+
+package praetorsd
 
 import (
 	"fmt"
@@ -94,6 +97,16 @@ func (sr ServiceRegistrations) Get(id ServiceID) (ServiceRegistration, bool) {
 func (sr ServiceRegistrations) Each(f func(ServiceID, ServiceRegistration)) {
 	for serviceID, reg := range sr.regs {
 		f(serviceID, reg)
+	}
+}
+
+// EachCheck applies a visitor function to each service check.  The visitor
+// must not retain or modify the AgentServiceCheck.
+func (sr ServiceRegistrations) EachCheck(f func(ServiceID, CheckID, api.AgentServiceCheck)) {
+	for serviceID, reg := range sr.regs {
+		for _, check := range reg.Checks {
+			f(serviceID, CheckID(check.CheckID), check)
+		}
 	}
 }
 

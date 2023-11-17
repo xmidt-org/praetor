@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /*
-Package praetorsd provides service discovery using consul within a
-go.uber.org/fx application.
+Package praetorsd provides service registration and discovery within an fx
+application.  The praetor package provides a way of bootstrapping a consul
+client, but that package is not required for this package to be useful.
 */
 package praetorsd
