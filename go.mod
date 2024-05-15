@@ -3,7 +3,7 @@ module github.com/xmidt-org/praetor
 go 1.21
 
 require (
-	github.com/hashicorp/consul/api v1.28.2
+	github.com/hashicorp/consul/api v1.28.3
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/fx v1.21.1
 	go.uber.org/multierr v1.11.0
@@ -12,7 +12,8 @@ require (
 require (
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/fatih/color v1.15.0 // indirect
+	github.com/fatih/color v1.16.0 // indirect
+	github.com/hashicorp/consul/proto-public v0.6.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
@@ -29,6 +30,7 @@ require (
 	go.uber.org/dig v1.17.1 // indirect
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.19.0 // indirect
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
