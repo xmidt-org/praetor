@@ -3,7 +3,7 @@ module github.com/xmidt-org/praetor
 go 1.21
 
 require (
-	github.com/hashicorp/consul/api v1.29.1
+	github.com/hashicorp/consul/api v1.29.2
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/fx v1.22.1
 	go.uber.org/multierr v1.11.0
