@@ -1,11 +1,10 @@
 module github.com/xmidt-org/praetor
 
 go 1.22.0
-
 toolchain go1.23.4
 
 require (
-	github.com/hashicorp/consul/api v1.31.0
+	github.com/hashicorp/consul/api v1.31.1
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/fx v1.23.0
 )
