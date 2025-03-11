@@ -30,3 +30,6 @@ linters-settings:
     errorf: false
   misspell:
     locale: US
+  gosec:
+    excludes:
+      - G404 # we don't need secure random numbers
