@@ -440,14 +440,13 @@ func (r *registrar) Register(ctx context.Context) (err error) {
 	defer r.registerLock.Unlock()
 	r.registerLock.Lock()
 
+	var taskCtx context.Context
 	if r.cancel != nil {
 		err = ErrRegistrarStarted
 	}
 
-	var taskCtx context.Context
-	taskCtx, r.cancel = context.WithCancel(context.Background())
-
 	if err == nil {
+		taskCtx, r.cancel = context.WithCancel(context.Background())
 		for _, rs := range r.services {
 			err = multierr.Append(err, r.registerer.ServiceRegisterOpts(
 				&rs.service,
