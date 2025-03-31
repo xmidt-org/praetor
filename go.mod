@@ -1,9 +1,8 @@
 module github.com/xmidt-org/praetor
 
 go 1.24.0
-
 require (
-	github.com/hashicorp/consul/api v1.31.2
+	github.com/hashicorp/consul/api v1.32.0
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/fx v1.23.0
 	go.uber.org/multierr v1.11.0
