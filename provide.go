@@ -8,8 +8,8 @@ import (
 	"go.uber.org/fx"
 )
 
-func newClient(cfg api.Config) (*api.Client, error) {
-	return api.NewClient(&cfg)
+func newClient(acfg api.Config) (*api.Client, error) {
+	return api.NewClient(&acfg)
 }
 
 func newAgent(c *api.Client) *api.Agent {
@@ -25,9 +25,9 @@ func newHealth(c *api.Client) *api.Health {
 }
 
 // Provide sets up the dependency injection infrastructure for Consul.
-// This provider expects an api.Config to be present in the application
-// (NOT an *api.Config). In order to bootstrap using praetor's cofiguration,
-// use ProvideConfig in addition to this function.
+//
+// An api.Config may be present in the application.  If so, that will be used
+// to construct the consul agent.  Otherwise, an empty api.Config will be used.
 //
 // The following components are emitted by this provider:
 //
@@ -37,19 +37,36 @@ func newHealth(c *api.Client) *api.Health {
 //   - *api.Health
 func Provide() fx.Option {
 	return fx.Provide(
-		newClient,
+		fx.Annotate(
+			newClient,
+			fx.ParamTags(`optional:"true"`),
+		),
 		newAgent,
 		newCatalog,
 		newHealth,
 	)
 }
 
-// ProvideConfig bootstraps an api.Config using a praetor Config.
-//
-// NOTE: In order to inject a custom *http.Client or *http.Transport,
-// use fx.Decorate and decorate the api.Config.
+// ProvideConfig uses the Config object in this package to bootstrap an api.Config.
+// This function uses ProvidCustomConfig to build the returned option.
 func ProvideConfig() fx.Option {
+	return ProvideCustomConfig[Config](newAPIConfig)
+}
+
+// ProvideCustomConfig allows a custom configuration object, possibly unmarshaled,
+// to be used to bootstrap a consul api.Config.
+//
+// The options returned by this function take an optional configuration object of
+// type C. The given closure, which cannot be nil, will be passed the injected
+// value of C and the returned api.Config will then be used by Provide.
+//
+// Note that C is an optional dependency, to allow flexibility when boostrapping
+// an application. The closure must handle default values of C gracefully.
+func ProvideCustomConfig[C any, F APIConfigurer[C]](cnv F) fx.Option {
 	return fx.Provide(
-		NewAPIConfig,
+		fx.Annotate(
+			asAPIConfigurer[C](cnv),
+			fx.ParamTags(`optional:"true"`),
+		),
 	)
 }
