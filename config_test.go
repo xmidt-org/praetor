@@ -15,12 +15,6 @@ type ConfigTestSuite struct {
 	suite.Suite
 }
 
-func (suite *ConfigTestSuite) newAPIConfig(src Config) api.Config {
-	dst, err := NewAPIConfig(src)
-	suite.Require().NoError(err)
-	return dst
-}
-
 // newSimpleConfig creates a praetor Config with the simple fields set.
 func (suite *ConfigTestSuite) newSimpleConfig() Config {
 	return Config{
@@ -53,7 +47,7 @@ func (suite *ConfigTestSuite) assertSimpleFields(cfg api.Config) {
 }
 
 func (suite *ConfigTestSuite) testNewAPIConfigSimple() {
-	cfg := suite.newAPIConfig(
+	cfg := newAPIConfig(
 		suite.newSimpleConfig(),
 	)
 
@@ -67,7 +61,7 @@ func (suite *ConfigTestSuite) testNewAPIConfigHttpAuth() {
 	src.BasicAuth.UserName = "user"
 	src.BasicAuth.Password = "password"
 
-	cfg := suite.newAPIConfig(src)
+	cfg := newAPIConfig(src)
 
 	suite.assertSimpleFields(cfg)
 	suite.Equal(api.TLSConfig{}, cfg.TLSConfig)
@@ -90,7 +84,7 @@ func (suite *ConfigTestSuite) testNewAPIConfigTLS() {
 	src.TLS.KeyFile = "/etc/app/keyFile"
 	src.TLS.InsecureSkipVerify = true
 
-	cfg := suite.newAPIConfig(src)
+	cfg := newAPIConfig(src)
 
 	suite.assertSimpleFields(cfg)
 	suite.Nil(cfg.HttpAuth)

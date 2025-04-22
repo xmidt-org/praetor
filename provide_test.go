@@ -14,70 +14,109 @@ import (
 
 type ProvideSuite struct {
 	suite.Suite
+
+	client  *api.Client
+	agent   *api.Agent
+	catalog *api.Catalog
+	health  *api.Health
+	kv      *api.KV
+}
+
+func (suite *ProvideSuite) SetupTest() {
+	suite.client = nil
+	suite.agent = nil
+	suite.catalog = nil
+	suite.health = nil
+	suite.kv = nil
+}
+
+func (suite *ProvideSuite) SetupSubTest() {
+	suite.SetupTest()
+}
+
+// populate returns an option that populates the various services
+// that Provide emits.
+func (suite *ProvideSuite) populate() fx.Option {
+	return fx.Populate(
+		&suite.client,
+		&suite.agent,
+		&suite.catalog,
+		&suite.health,
+		&suite.kv,
+	)
+}
+
+// assertServices verifies that all the services that Provide
+// emits were set.
+func (suite *ProvideSuite) assertServices() {
+	suite.NotNil(suite.client)
+	suite.NotNil(suite.agent)
+	suite.NotNil(suite.catalog)
+	suite.NotNil(suite.health)
+	suite.NotNil(suite.kv)
 }
 
 func (suite *ProvideSuite) TestProvide() {
-	var (
-		client  *api.Client
-		agent   *api.Agent
-		catalog *api.Catalog
-		health  *api.Health
-
-		app = fxtest.New(
+	suite.Run("WithAPIConfig", func() {
+		fxtest.New(
 			suite.T(),
 			fx.Supply(api.Config{}),
+			fx.NopLogger,
 			Provide(),
-			fx.Populate(
-				&client,
-				&agent,
-				&catalog,
-				&health,
-			),
+			suite.populate(),
 		)
-	)
 
-	suite.NoError(app.Err())
-	suite.NotNil(client)
-	suite.NotNil(agent)
-	suite.NotNil(catalog)
-	suite.NotNil(health)
+		suite.assertServices()
+	})
+
+	suite.Run("NoAPIConfig", func() {
+		fxtest.New(
+			suite.T(),
+			fx.NopLogger,
+			Provide(),
+			suite.populate(),
+		)
+
+		suite.assertServices()
+	})
 }
 
 func (suite *ProvideSuite) TestProvideConfig() {
-	var (
-		config  api.Config
-		client  *api.Client
-		agent   *api.Agent
-		catalog *api.Catalog
-		health  *api.Health
-
-		app = fxtest.New(
+	suite.Run("WithPraetorConfig", func() {
+		var acfg api.Config
+		fxtest.New(
 			suite.T(),
+			fx.NopLogger,
 			fx.Supply(
 				Config{
 					Scheme:  "http",
 					Address: "foobar:8080",
 				},
 			),
-			Provide(),
 			ProvideConfig(),
-			fx.Populate(
-				&config,
-				&client,
-				&agent,
-				&catalog,
-				&health,
-			),
+			Provide(),
+			suite.populate(),
+			fx.Populate(&acfg),
 		)
-	)
 
-	suite.NoError(app.Err())
-	suite.Equal("http", config.Scheme)
-	suite.Equal("foobar:8080", config.Address)
-	suite.NotNil(client)
-	suite.NotNil(agent)
-	suite.NotNil(catalog)
-	suite.NotNil(health)
+		suite.assertServices()
+		suite.Equal("http", acfg.Scheme)
+		suite.Equal("foobar:8080", acfg.Address)
+	})
+
+	suite.Run("NoPraetorConfig", func() {
+		var acfg api.Config
+		fxtest.New(
+			suite.T(),
+			fx.NopLogger,
+			ProvideConfig(),
+			Provide(),
+			suite.populate(),
+			fx.Populate(&acfg), // just verify that an api.Config was created
+		)
+
+		suite.assertServices()
+	})
 }
 
 func TestProvide(t *testing.T) {

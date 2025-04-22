@@ -47,8 +47,8 @@ type TLSConfig struct {
 // Config is an easily unmarshalable configuration that praetor uses to create
 // a consul api.Config. Fields in this struct mirror those of api.Config.
 //
-// An application can just unmarshal an api.Config directly, rather than using this type.
-// This type provides struct tags to standardize fields across various libraries.
+// This type provides a simple, externalizable configuration for consul. It is optional.
+// An application can supply an api.Config directly.
 type Config struct {
 	// Scheme is the URI scheme of the consul server.
 	Scheme string `json:"scheme" yaml:"scheme" mapstructure:"scheme"`
@@ -86,8 +86,8 @@ type Config struct {
 	TLS TLSConfig `json:"tls" yaml:"tls" mapstructure:"tls"`
 }
 
-// NewAPIConfig constructs a consul client api.Config from a praetor configuration.
-func NewAPIConfig(src Config) (dst api.Config, err error) {
+// newAPIConfig creates an api.Config from a source praetor.Config.
+func newAPIConfig(src Config) (dst api.Config) {
 	dst = api.Config{
 		Scheme:     src.Scheme,
 		Address:    src.Address,

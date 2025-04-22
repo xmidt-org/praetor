@@ -8,8 +8,8 @@ import (
 	"go.uber.org/fx"
 )
 
-func newClient(cfg api.Config) (*api.Client, error) {
-	return api.NewClient(&cfg)
+func newClient(acfg api.Config) (*api.Client, error) {
+	return api.NewClient(&acfg)
 }
 
 func newAgent(c *api.Client) *api.Agent {
@@ -24,10 +24,14 @@ func newHealth(c *api.Client) *api.Health {
 	return c.Health()
 }
 
+func newKV(c *api.Client) *api.KV {
+	return c.KV()
+}
+
 // Provide sets up the dependency injection infrastructure for Consul.
-// This provider expects an api.Config to be present in the application
-// (NOT an *api.Config). In order to bootstrap using praetor's cofiguration,
-// use ProvideConfig in addition to this function.
+//
+// An api.Config may be present in the application.  If so, that will be used
+// to construct the consul agent.  Otherwise, an empty api.Config will be used.
 //
 // The following components are emitted by this provider:
 //
@@ -35,21 +39,27 @@ func newHealth(c *api.Client) *api.Health {
 //   - *api.Agent
 //   - *api.Catalog
 //   - *api.Health
+//   - *api.KV
 func Provide() fx.Option {
 	return fx.Provide(
-		newClient,
+		fx.Annotate(
+			newClient,
+			fx.ParamTags(`optional:"true"`),
+		),
 		newAgent,
 		newCatalog,
 		newHealth,
+		newKV,
 	)
 }
 
-// ProvideConfig bootstraps an api.Config using a praetor Config.
-//
-// NOTE: In order to inject a custom *http.Client or *http.Transport,
-// use fx.Decorate and decorate the api.Config.
+// ProvideConfig uses the praetor Config object in this package to bootstrap an api.Config.
+// The praetor Config is optional, and if not present a default api.Config will be created.
 func ProvideConfig() fx.Option {
 	return fx.Provide(
-		NewAPIConfig,
+		fx.Annotate(
+			newAPIConfig,
+			fx.ParamTags(`optional:"true"`),
+		),
 	)
 }
