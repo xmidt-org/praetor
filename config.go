@@ -4,72 +4,10 @@
 package praetor
 
 import (
-	"reflect"
 	"time"
 
 	"github.com/hashicorp/consul/api"
 )
-
-// APIConfigurer is a closure type that can translate a custom confuguration
-// object into a consul api.Config.
-//
-// The signature of this closure is flexible.  It may return an *api.Config or
-// an api.Config. However, it is always api.Config (the non-pointer type) that
-// is consumed by praetor. Additionally, this closure can return an optional
-// second error result.
-type APIConfigurer[T any] interface {
-	~func(T) api.Config |
-		~func(T) (api.Config, error) |
-		~func(T) *api.Config |
-		~func(T) (*api.Config, error)
-}
-
-// tryAsAPIConfigurer encapsulates an attempt to convert src into a target closure.
-// If no conversion is possible, this function returns false.
-func tryAsAPIConfigurer[F any](src reflect.Value) (f F, ok bool) {
-	ft := reflect.TypeOf(f)
-	if ok = src.CanConvert(ft); ok {
-		f = src.Convert(ft).Interface().(F)
-	}
-
-	return
-}
-
-// asAPIConfigurer normalizes an APIConfigurer closure into a common signature.
-func asAPIConfigurer[T any, F APIConfigurer[T]](f F) func(T) (api.Config, error) {
-	fv := reflect.ValueOf(f)
-
-	if af, ok := tryAsAPIConfigurer[func(T) *api.Config](fv); ok {
-		return func(cfg T) (acfg api.Config, _ error) {
-			if p := af(cfg); p != nil {
-				acfg = *p
-			}
-
-			return
-		}
-	}
-
-	if af, ok := tryAsAPIConfigurer[func(T) (*api.Config, error)](fv); ok {
-		return func(cfg T) (acfg api.Config, err error) {
-			var p *api.Config
-			if p, err = af(cfg); p != nil {
-				acfg = *p
-			}
-
-			return
-		}
-	}
-
-	if af, ok := tryAsAPIConfigurer[func(T) api.Config](fv); ok {
-		return func(cfg T) (api.Config, error) {
-			return af(cfg), nil
-		}
-	}
-
-	// at this point, there's only (1) possible type left
-	af, _ := tryAsAPIConfigurer[func(T) (api.Config, error)](fv)
-	return af
-}
 
 // BasicAuthConfig holds the HTTP basic authorization credentials for Consul.
 type BasicAuthConfig struct {
@@ -107,8 +45,7 @@ type TLSConfig struct {
 }
 
 // Config is an easily unmarshalable configuration that praetor uses to create
-// a consul api.Config. Fields in this struct mirror those of api.Config. This type implements
-// APIConfigurer and thus can be used with ProvideConfig.
+// a consul api.Config. Fields in this struct mirror those of api.Config.
 //
 // This type provides a simple, externalizable configuration for consul. It is optional.
 // An application can supply an api.Config directly.
@@ -149,7 +86,7 @@ type Config struct {
 	TLS TLSConfig `json:"tls" yaml:"tls" mapstructure:"tls"`
 }
 
-// newAPIConfig is an APIConfigurer that can be passed to ProvideCustomConfig.
+// newAPIConfig creates an api.Config from a source praetor.Config.
 func newAPIConfig(src Config) (dst api.Config) {
 	dst = api.Config{
 		Scheme:     src.Scheme,

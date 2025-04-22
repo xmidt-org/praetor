@@ -12,13 +12,93 @@ praetor integrates go.uber.org/fx with consul.
 
 ## Summary
 
-Praetor provides a basic, opinionated way of integrating consul into a go.uber.org/fx application.  In particular, it allows for external configuration to drive service registration and discovery.  Praetor also binds service registration and discovery to the application lifecycle.
+Praetor provides a basic, opinionated way of integrating consul into a go.uber.org/fx application.
 
 ## Table of Contents
 
+- [Usage](#usage)
 - [Code of Conduct](#code-of-conduct)
 - [Install](#install)
 - [Contributing](#contributing)
+
+## Usage
+
+`praetor.Provide()` creates an `*api.Client` object as well as several of the commonly used services.
+
+```go
+import github.com/xmidt-org/praetor
+
+app := fx.New(
+    praetor.Provide(),
+    fx.Invoke(
+        // praetor.Provide() makes the following possible:
+        func(client *api.Config) {
+            // ...
+        },
+        func(agent *api.Agent) {
+            // ...
+        },
+        func(agent *api.Catalog) {
+            // ...
+        },
+        func(agent *api.Health) {
+            // ...
+        },
+        func(agent *api.KV) {
+            // ...
+        },
+    ),
+)
+```
+
+If an `api.Config` is provided within the application, it will be used to create the consul client.
+
+```go
+import github.com/xmidt-org/praetor
+
+app := fx.New(
+    fx.Supply(
+        // this api.Config can come from external sources
+        api.Config{
+            Scheme: "https",
+            Address: "foobar.com",
+        }
+    ),
+    praetor.Provide(),
+)
+```
+
+A custom configuration can be easily integrated using the standard `go.uber.org/fx` tools.
+
+```go
+import github.com/xmidt-org/praetor
+
+type MyConfiguration struct {
+    Scheme string
+    Address string
+
+    // anything else desired ....
+}
+
+app := fx.New(
+    fx.Supply(
+        MyConfiguration{
+            Scheme: "https",
+            Address: "foobar.com",
+        }
+    ),
+    praetor.Provide(),
+    fx.Provide(
+        // this will be used by praetor
+        func(src MyConfiguration) api.Config {
+            return api.Config{
+                Scheme: src.Scheme,
+                Address: src.Address,
+            }
+        },
+    ),
+)
+```
 
 ## Code of Conduct
 

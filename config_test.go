@@ -4,7 +4,6 @@
 package praetor
 
 import (
-	"errors"
 	"testing"
 	"time"
 
@@ -14,89 +13,6 @@ import (
 
 type ConfigTestSuite struct {
 	suite.Suite
-}
-
-// newAPIConfig creates a simple consul api.Config for testing.
-func (suite *ConfigTestSuite) newAPIConfig() *api.Config {
-	return &api.Config{
-		Scheme:  "ftp",
-		Address: "foobar.com",
-	}
-}
-
-// assertAPIConfig verifies the api.Config created by newAPIConfig.
-func (suite *ConfigTestSuite) assertAPIConfig(acfg api.Config) {
-	suite.Equal("ftp", acfg.Scheme)
-	suite.Equal("foobar.com", acfg.Address)
-}
-
-func (suite *ConfigTestSuite) testAsAPIConfigurerReturnPointer() {
-	const src int = 49587234
-	af := asAPIConfigurer[int](
-		func(actual int) *api.Config {
-			suite.Equal(src, actual)
-			return suite.newAPIConfig()
-		},
-	)
-
-	suite.Require().NotNil(af)
-	acfg, err := af(src)
-	suite.Require().NoError(err)
-	suite.assertAPIConfig(acfg)
-}
-
-func (suite *ConfigTestSuite) testAsAPIConfigurerReturnPointerAndError() {
-	const src int = 49587234
-	expectedErr := errors.New("expected")
-	af := asAPIConfigurer[int](
-		func(actual int) (*api.Config, error) {
-			suite.Equal(src, actual)
-			return suite.newAPIConfig(), expectedErr
-		},
-	)
-
-	suite.Require().NotNil(af)
-	acfg, err := af(src)
-	suite.Same(expectedErr, err)
-	suite.assertAPIConfig(acfg)
-}
-
-func (suite *ConfigTestSuite) testAsAPIConfigurerReturnValue() {
-	const src int = 49587234
-	af := asAPIConfigurer[int](
-		func(actual int) api.Config {
-			suite.Equal(src, actual)
-			return *suite.newAPIConfig()
-		},
-	)
-
-	suite.Require().NotNil(af)
-	acfg, err := af(src)
-	suite.Require().NoError(err)
-	suite.assertAPIConfig(acfg)
-}
-
-func (suite *ConfigTestSuite) testAsAPIConfigurerReturnValueAndError() {
-	const src int = 49587234
-	expectedErr := errors.New("expected")
-	af := asAPIConfigurer[int](
-		func(actual int) (api.Config, error) {
-			suite.Equal(src, actual)
-			return *suite.newAPIConfig(), expectedErr
-		},
-	)
-
-	suite.Require().NotNil(af)
-	acfg, err := af(src)
-	suite.Same(expectedErr, err)
-	suite.assertAPIConfig(acfg)
-}
-
-func (suite *ConfigTestSuite) TestAsAPIConfigurer() {
-	suite.Run("ReturnPointer", suite.testAsAPIConfigurerReturnPointer)
-	suite.Run("ReturnPointerAndError", suite.testAsAPIConfigurerReturnPointerAndError)
-	suite.Run("ReturnValue", suite.testAsAPIConfigurerReturnValue)
-	suite.Run("ReturnValueAndError", suite.testAsAPIConfigurerReturnValueAndError)
 }
 
 // newSimpleConfig creates a praetor Config with the simple fields set.

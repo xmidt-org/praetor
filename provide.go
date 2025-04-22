@@ -24,6 +24,10 @@ func newHealth(c *api.Client) *api.Health {
 	return c.Health()
 }
 
+func newKV(c *api.Client) *api.KV {
+	return c.KV()
+}
+
 // Provide sets up the dependency injection infrastructure for Consul.
 //
 // An api.Config may be present in the application.  If so, that will be used
@@ -35,6 +39,7 @@ func newHealth(c *api.Client) *api.Health {
 //   - *api.Agent
 //   - *api.Catalog
 //   - *api.Health
+//   - *api.KV
 func Provide() fx.Option {
 	return fx.Provide(
 		fx.Annotate(
@@ -44,28 +49,16 @@ func Provide() fx.Option {
 		newAgent,
 		newCatalog,
 		newHealth,
+		newKV,
 	)
 }
 
-// ProvideConfig uses the Config object in this package to bootstrap an api.Config.
-// This function uses ProvidCustomConfig to build the returned option.
+// ProvideConfig uses the praetor Config object in this package to bootstrap an api.Config.
+// The praetor Config is optional, and if not present a default api.Config will be created.
 func ProvideConfig() fx.Option {
-	return ProvideCustomConfig[Config](newAPIConfig)
-}
-
-// ProvideCustomConfig allows a custom configuration object, possibly unmarshaled,
-// to be used to bootstrap a consul api.Config.
-//
-// The options returned by this function take an optional configuration object of
-// type C. The given closure, which cannot be nil, will be passed the injected
-// value of C and the returned api.Config will then be used by Provide.
-//
-// Note that C is an optional dependency, to allow flexibility when boostrapping
-// an application. The closure must handle default values of C gracefully.
-func ProvideCustomConfig[C any, F APIConfigurer[C]](cnv F) fx.Option {
 	return fx.Provide(
 		fx.Annotate(
-			asAPIConfigurer[C](cnv),
+			newAPIConfig,
 			fx.ParamTags(`optional:"true"`),
 		),
 	)

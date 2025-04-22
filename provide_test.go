@@ -19,6 +19,7 @@ type ProvideSuite struct {
 	agent   *api.Agent
 	catalog *api.Catalog
 	health  *api.Health
+	kv      *api.KV
 }
 
 func (suite *ProvideSuite) SetupTest() {
@@ -26,6 +27,7 @@ func (suite *ProvideSuite) SetupTest() {
 	suite.agent = nil
 	suite.catalog = nil
 	suite.health = nil
+	suite.kv = nil
 }
 
 func (suite *ProvideSuite) SetupSubTest() {
@@ -40,6 +42,7 @@ func (suite *ProvideSuite) populate() fx.Option {
 		&suite.agent,
 		&suite.catalog,
 		&suite.health,
+		&suite.kv,
 	)
 }
 
@@ -50,6 +53,7 @@ func (suite *ProvideSuite) assertServices() {
 	suite.NotNil(suite.agent)
 	suite.NotNil(suite.catalog)
 	suite.NotNil(suite.health)
+	suite.NotNil(suite.kv)
 }
 
 func (suite *ProvideSuite) TestProvide() {
@@ -57,6 +61,7 @@ func (suite *ProvideSuite) TestProvide() {
 		fxtest.New(
 			suite.T(),
 			fx.Supply(api.Config{}),
+			fx.NopLogger,
 			Provide(),
 			suite.populate(),
 		)
@@ -67,6 +72,7 @@ func (suite *ProvideSuite) TestProvide() {
 	suite.Run("NoAPIConfig", func() {
 		fxtest.New(
 			suite.T(),
+			fx.NopLogger,
 			Provide(),
 			suite.populate(),
 		)
@@ -77,41 +83,39 @@ func (suite *ProvideSuite) TestProvide() {
 
 func (suite *ProvideSuite) TestProvideConfig() {
 	suite.Run("WithPraetorConfig", func() {
-		suite.Run("WithAPIConfig", func() {
-			var acfg api.Config
-			fxtest.New(
-				suite.T(),
-				fx.Supply(
-					Config{
-						Scheme:  "http",
-						Address: "foobar:8080",
-					},
-				),
-				ProvideConfig(),
-				Provide(),
-				suite.populate(),
-				fx.Populate(&acfg),
-			)
+		var acfg api.Config
+		fxtest.New(
+			suite.T(),
+			fx.NopLogger,
+			fx.Supply(
+				Config{
+					Scheme:  "http",
+					Address: "foobar:8080",
+				},
+			),
+			ProvideConfig(),
+			Provide(),
+			suite.populate(),
+			fx.Populate(&acfg),
+		)
 
-			suite.assertServices()
-			suite.Equal("http", acfg.Scheme)
-			suite.Equal("foobar:8080", acfg.Address)
-		})
+		suite.assertServices()
+		suite.Equal("http", acfg.Scheme)
+		suite.Equal("foobar:8080", acfg.Address)
 	})
 
 	suite.Run("NoPraetorConfig", func() {
-		suite.Run("WithAPIConfig", func() {
-			var acfg api.Config
-			fxtest.New(
-				suite.T(),
-				ProvideConfig(),
-				Provide(),
-				suite.populate(),
-				fx.Populate(&acfg), // just verify that an api.Config was created
-			)
+		var acfg api.Config
+		fxtest.New(
+			suite.T(),
+			fx.NopLogger,
+			ProvideConfig(),
+			Provide(),
+			suite.populate(),
+			fx.Populate(&acfg), // just verify that an api.Config was created
+		)
 
-			suite.assertServices()
-		})
+		suite.assertServices()
 	})
 }
 
