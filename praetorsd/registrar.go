@@ -49,12 +49,6 @@ var (
 	ErrRegistrarJitter = errors.New("a TTL jitter must be in the half open range [0.0, 1.0)")
 )
 
-// checkState represents the state of a given service check.
-type checkState struct {
-	output string
-	status string
-}
-
 // registrarCheck holds information about a single check for a managed service.
 type registrarCheck struct {
 	check   api.AgentServiceCheck
@@ -78,7 +72,7 @@ func newRegistrarCheck(service api.AgentServiceRegistration, check api.AgentServ
 	}
 
 	// initial state
-	rc.updateStatus("", api.HealthPassing)
+	rc.updateState(State{})
 
 	if len(rc.check.TTL) > 0 {
 		rc.interval, err = time.ParseDuration(rc.check.TTL)
@@ -87,12 +81,9 @@ func newRegistrarCheck(service api.AgentServiceRegistration, check api.AgentServ
 	return
 }
 
-// updateStatus updates the health status for this check.
-func (rc *registrarCheck) updateStatus(output, status string) {
-	rc.state.Store(checkState{
-		output: output,
-		status: status,
-	})
+// updateState updates the health state for this check.
+func (rc *registrarCheck) updateState(s State) {
+	rc.state.Store(s)
 }
 
 // nextTimer returns a closure that chooses new timer intervals based on
@@ -126,8 +117,8 @@ func (rc *registrarCheck) ttlFunc(ctx context.Context, updater TTLUpdater) func(
 
 	opts := rc.opts.WithContext(ctx)
 	return func() error {
-		cs := rc.state.Load().(checkState)
-		return updater.UpdateTTLOpts(rc.check.CheckID, cs.output, cs.status, opts)
+		cs := rc.state.Load().(State)
+		return updater.UpdateTTLOpts(rc.check.CheckID, cs.Output, cs.Status.String(), opts)
 	}
 }
 
@@ -203,10 +194,10 @@ func newRegistrarService(service api.AgentServiceRegistration) (rs *registrarSer
 	return
 }
 
-// updateStatus updates the check status for all checks for this service.
-func (rs *registrarService) updateStatus(output, status string) {
+// updateState updates the check state for all checks for this service.
+func (rs *registrarService) updateState(s State) {
 	for _, rc := range rs.checks {
-		rc.updateStatus(output, status)
+		rc.updateState(s)
 	}
 }
 
@@ -385,20 +376,20 @@ type Registrar interface {
 	// this method returns ErrRegistrarStopped.
 	Deregister(context.Context) error
 
-	// SetStatus updates the status for all checks. If this registrar has no
+	// SetState updates the state for all checks. If this registrar has no
 	// checks, this method does nothing.
-	SetStatus(output, status string)
+	SetState(State)
 
-	// SetServiceStatus updates the status for a service's checks. If the given service
+	// SetServiceState updates the state for a service's checks. If the given service
 	// is unknown to this Registrar, ErrRegistrarNoService is returned.
-	SetServiceStatus(serviceID, output, status string) error
+	SetServiceState(serviceID string, s State) error
 
-	// SetCheckStatus updates the status of a check. If the given check is unknown
+	// SetCheckState updates the state of a single check. If the given check is unknown
 	// to this Registrar, ErrRegistrarNoCheck is returned.
 	//
-	// A check's status may be set at anytime, regardless of whether Register
+	// A check's state may be set at anytime, regardless of whether Register
 	// has been called.
-	SetCheckStatus(checkID, output, status string) error
+	SetCheckState(checkID string, s State) error
 }
 
 // NewRegistrar creates a Registrar using a supplied set of options. The set
@@ -487,15 +478,15 @@ func (r *registrar) Deregister(ctx context.Context) (err error) {
 	return
 }
 
-func (r *registrar) SetStatus(output, status string) {
+func (r *registrar) SetState(s State) {
 	for _, rc := range r.checks {
-		rc.updateStatus(output, status)
+		rc.updateState(s)
 	}
 }
 
-func (r *registrar) SetServiceStatus(serviceID, output, status string) (err error) {
+func (r *registrar) SetServiceState(serviceID string, s State) (err error) {
 	if rs, exists := r.services[serviceID]; exists {
-		rs.updateStatus(output, status)
+		rs.updateState(s)
 	} else {
 		err = ErrRegistrarNoService
 	}
@@ -503,9 +494,9 @@ func (r *registrar) SetServiceStatus(serviceID, output, status string) (err erro
 	return
 }
 
-func (r *registrar) SetCheckStatus(checkID, output, status string) (err error) {
+func (r *registrar) SetCheckState(checkID string, s State) (err error) {
 	if rc, exists := r.checks[checkID]; exists {
-		rc.updateStatus(output, status)
+		rc.updateState(s)
 	} else {
 		err = ErrRegistrarNoCheck
 	}
