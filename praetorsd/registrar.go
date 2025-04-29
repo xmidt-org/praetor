@@ -170,10 +170,10 @@ func newRegistrarService(service api.AgentServiceRegistration) (rs *registrarSer
 		registerOpts: api.ServiceRegisterOpts{
 			ReplaceExistingChecks: true,
 		},
-		checks: make(map[string]*registrarCheck, ChecksLen(service)),
+		checks: make(map[string]*registrarCheck, ServiceRegistrationChecksLen(service)),
 	}
 
-	for _, check := range Checks(rs.service) {
+	for _, check := range ServiceRegistrationChecks(rs.service) {
 		var rc *registrarCheck
 
 		if len(check.CheckID) == 0 {
