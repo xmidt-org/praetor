@@ -159,7 +159,7 @@ func (r *registrar) Deregister(ctx context.Context) error {
 		return ErrRegistrarDeregistered
 	}
 
-	r.ad.ServiceDeregisterOpts(string(r.sid), nil)
+	err := r.ad.ServiceDeregisterOpts(string(r.sid), nil)
 	r.registered = false
-	return nil
+	return err
 }
