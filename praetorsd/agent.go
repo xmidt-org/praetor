@@ -3,7 +3,9 @@
 
 package praetorsd
 
-import "github.com/hashicorp/consul/api"
+import (
+	"github.com/hashicorp/consul/api"
+)
 
 // AgentRegisterer is the low-level behavior of anything that can actually
 // perform a service registration.
@@ -22,7 +24,3 @@ type AgentDeregisterer interface {
 type TTLUpdater interface {
 	UpdateTTLOpts(checkID, output, status string, opts *api.QueryOptions) error
 }
-
-var _ AgentRegisterer = (*api.Agent)(nil)
-var _ AgentDeregisterer = (*api.Agent)(nil)
-var _ TTLUpdater = (*api.Agent)(nil)
