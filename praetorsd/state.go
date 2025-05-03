@@ -3,6 +3,11 @@
 
 package praetorsd
 
+import (
+	"sync"
+	"sync/atomic"
+)
+
 //go:generate stringer -type=Status -linecomment
 
 // Status represents the Consul service status. The String() value
@@ -38,4 +43,46 @@ type State struct {
 
 	// Status is the Consul service status.
 	Status Status
+}
+
+// StateAccessor defines the behavior of anything that can atomically access
+// the State of a registered consul service.
+type StateAccessor interface {
+	// State is the current health state for this instance. Different registered
+	// services are allowed to have different states.
+	//
+	// This is the value sent in any TTL updates associated with this instance. It should
+	// also by the value sent by any HTTP health endpoints the application implements.
+	State() State
+
+	// SetState updates the current state. This method may be called at any time.
+	//
+	// Updating or obtaining State is always atomic and safe for concurrent access.
+	SetState(State) (previous State)
+}
+
+// stateAccessor is a concurrent-safe access point for a State object.
+type stateAccessor struct {
+	lock  sync.Mutex
+	value atomic.Value
+}
+
+// newStateAccessor creates a stateHolder access point with the given initial state.
+func newStateAccessor(initial State) *stateAccessor {
+	sh := new(stateAccessor)
+	sh.value.Store(initial)
+	return sh
+}
+
+func (sh *stateAccessor) State() State {
+	return sh.value.Load().(State)
+}
+
+func (sh *stateAccessor) SetState(s State) (previous State) {
+	sh.lock.Lock()
+	previous, _ = sh.value.Load().(State) // allow Store not to have been called yet
+	sh.value.Store(s)
+	sh.lock.Unlock()
+
+	return
 }

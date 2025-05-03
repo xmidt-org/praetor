@@ -26,7 +26,7 @@ func provideAgent() fx.Option {
 type registrarsIn struct {
 	fx.In
 
-	Services          *Registrations `optional:"true"`
+	Definitions       *Definitions `optional:"true"`
 	AgentRegisterer   AgentRegisterer
 	AgentDeregisterer AgentDeregisterer
 	TTLUpdater        TTLUpdater
@@ -34,9 +34,11 @@ type registrarsIn struct {
 	Lifecycle fx.Lifecycle
 }
 
+// newRegistrars is the internal constructor for a Registrars component
+// based on fx.App dependencies.
 func newRegistrars(in registrarsIn) (rs Registrars, err error) {
 	rs, err = NewRegistrars(
-		in.Services,
+		in.Definitions,
 		WithAgentRegisterer(in.AgentRegisterer),
 		WithAgentDeregisterer(in.AgentDeregisterer),
 	)
@@ -58,6 +60,12 @@ func newRegistrars(in registrarsIn) (rs Registrars, err error) {
 // Provide creates the service discovery components required to manage an applications
 // registered consul service endpoints.
 //
+// A Definitions bundle, of type *Definitions, can be present in the enclosing application.
+// This bundle can be built from application configuration or in any other desired way.
+// The Registrars component that this function creates will use this Definitions bundle.
+// If no Definitions bundle is present, the created Registrars will be empty and no
+// services will be managed or registered with consul.
+//
 // A consul *api.Agent must be present in the application. This can be built with
 // praetor.Provide or by other means.
 //
@@ -67,15 +75,14 @@ func newRegistrars(in registrarsIn) (rs Registrars, err error) {
 //   - AgentRegisterer
 //   - AgentDeregisterer
 //   - TTLUpdater
-//
-// A Registrars component will be created and bound to the application lifecycle. The Registrars
-// is built using a *Registrations bundle that is expected to be present as a component. If no
-// *Registrations bundle exists, then an empty Registrars is created.
 func Provide() fx.Option {
 	return fx.Options(
 		provideAgent(),
 		fx.Provide(
 			newRegistrars,
+		),
+		fx.Invoke(
+			func(Registrars) {},
 		),
 	)
 }
