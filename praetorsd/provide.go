@@ -26,7 +26,7 @@ func provideAgent() fx.Option {
 type registrarsIn struct {
 	fx.In
 
-	Services          *Registrations `optional:"true"`
+	Definitions       *Definitions `optional:"true"`
 	AgentRegisterer   AgentRegisterer
 	AgentDeregisterer AgentDeregisterer
 	TTLUpdater        TTLUpdater
@@ -34,9 +34,11 @@ type registrarsIn struct {
 	Lifecycle fx.Lifecycle
 }
 
+// newRegistrars is the internal constructor for a Registrars component
+// based on fx.App dependencies.
 func newRegistrars(in registrarsIn) (rs Registrars, err error) {
 	rs, err = NewRegistrars(
-		in.Services,
+		in.Definitions,
 		WithAgentRegisterer(in.AgentRegisterer),
 		WithAgentDeregisterer(in.AgentDeregisterer),
 	)
@@ -76,6 +78,9 @@ func Provide() fx.Option {
 		provideAgent(),
 		fx.Provide(
 			newRegistrars,
+		),
+		fx.Invoke(
+			func(Registrars) {},
 		),
 	)
 }
