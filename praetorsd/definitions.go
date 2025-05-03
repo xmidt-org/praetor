@@ -77,8 +77,8 @@ func (rb *DefinitionsBuilder) Reset() *DefinitionsBuilder {
 	return rb
 }
 
-// Build creates a new Registrations if possible. If any errors occurred during building, a nil
-// Registrations is returned along with an aggregate error.
+// Build creates a new Definitions bundle if possible. If any errors occurred during building, a nil
+// Definitions is returned along with an aggregate error.
 //
 // This method always resets the state of this builder.
 func (rb *DefinitionsBuilder) Build() (r *Definitions, err error) {
