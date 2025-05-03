@@ -94,12 +94,11 @@ func (rb *DefinitionsBuilder) Build() (r *Definitions, err error) {
 	return
 }
 
-// Definitions is an immutable bundle of consul registrations. Both service registrations
-// and check registrations (separate from a service object) are supported. A Definitions should be
-// created via a RegistrationsBuilder.
+// Definitions is an immutable bundle of consul service registrations. A Definitions should be
+// created via a DefinitionsBuilder.
 //
 // The zero value of this type is an empty bundle and is usable.  However, no additional registrations
-// may be added.  Use a RegistrationsBuilder rather than creating instances of this type directly.
+// may be added.  Use a DefinitionsBuilder rather than creating instances of this type directly.
 type Definitions struct {
 	services []serviceDefinition
 }
