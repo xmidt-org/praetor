@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/hashicorp/consul/api v1.32.1
-	github.com/stretchr/testify v1.11.0
+	github.com/stretchr/testify v1.11.1
 	go.uber.org/fx v1.24.0
 	go.uber.org/multierr v1.11.0
 )
