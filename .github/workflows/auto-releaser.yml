@@ -14,5 +14,5 @@ permissions:
 jobs:
   release:
     # yamllint disable-line
-    uses: xmidt-org/shared-go/.github/workflows/auto-releaser.yml@79ef455d3e925fe97bb0dbf2dec7af4f4008ee0b # v4.11.6
+    uses: xmidt-org/shared-go/.github/workflows/auto-releaser.yml@7b10cbd74790a5af49be5755ff835a229d2896af # v4.12.3
     secrets: inherit
