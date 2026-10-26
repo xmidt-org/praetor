@@ -13,5 +13,5 @@ permissions:
 jobs:
   approve:
     # yamllint disable-line
-    uses: xmidt-org/shared-go/.github/workflows/approve-dependabot.yml@8d1951d0d5489053f9320b3de2453042108b457f # v4.13.11
+    uses: xmidt-org/shared-go/.github/workflows/approve-dependabot.yml@9c8cc31032886a26d460e0f453392720501c7cab # v4.13.14
     secrets: inherit
