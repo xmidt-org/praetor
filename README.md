@@ -4,10 +4,8 @@ praetor integrates go.uber.org/fx with consul.
 
 [![Build Status](https://github.com/xmidt-org/praetor/workflows/CI/badge.svg)](https://github.com/xmidt-org/praetor/actions)
 [![codecov.io](http://codecov.io/github/xmidt-org/praetor/coverage.svg?branch=main)](http://codecov.io/github/xmidt-org/praetor?branch=main)
-[![Go Report Card](https://goreportcard.com/badge/github.com/xmidt-org/praetor)](https://goreportcard.com/report/github.com/xmidt-org/praetor)
 [![Apache V2 License](http://img.shields.io/badge/license-Apache%20V2-blue.svg)](https://github.com/xmidt-org/praetor/blob/main/LICENSE)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=xmidt-org_PROJECT&metric=alert_status)](https://sonarcloud.io/dashboard?id=xmidt-org_PROJECT)
-[![GitHub release](https://img.shields.io/github/release/xmidt-org/praetor.svg)](CHANGELOG.md)
+[![GitHub release](https://img.shields.io/github/release/xmidt-org/praetor.svg)](https://github.com/xmidt-org/praetor/releases)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/xmidt-org/praetor)](https://pkg.go.dev/github.com/xmidt-org/praetor)
 
 ## Summary
