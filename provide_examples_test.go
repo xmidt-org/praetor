@@ -20,16 +20,16 @@ func ExampleProvide_simple() {
 		fx.Invoke(
 			// code and have any of these types as dependencies:
 
-			func(client *api.Client) {
+			func(_ *api.Client) {
 				fmt.Println("client")
 			},
-			func(agent *api.Agent) {
+			func(_ *api.Agent) {
 				fmt.Println("agent")
 			},
-			func(agent *api.Catalog) {
+			func(_ *api.Catalog) {
 				fmt.Println("catalog")
 			},
-			func(agent *api.Health) {
+			func(_ *api.Health) {
 				fmt.Println("health")
 			},
 		),
@@ -53,16 +53,16 @@ func ExampleProvide_useconfig() {
 		ProvideConfig(),
 		Provide(),
 		fx.Invoke(
-			func(client *api.Client) {
+			func(_ *api.Client) {
 				fmt.Println("client")
 			},
-			func(agent *api.Agent) {
+			func(_ *api.Agent) {
 				fmt.Println("agent")
 			},
-			func(agent *api.Catalog) {
+			func(_ *api.Catalog) {
 				fmt.Println("catalog")
 			},
-			func(agent *api.Health) {
+			func(_ *api.Health) {
 				fmt.Println("health")
 			},
 		),
@@ -98,16 +98,16 @@ func ExampleProvide_injectcustomclient() {
 		ProvideConfig(),
 		Provide(),
 		fx.Invoke(
-			func(client *api.Client) {
+			func(_ *api.Client) {
 				fmt.Println("client")
 			},
-			func(agent *api.Agent) {
+			func(_ *api.Agent) {
 				fmt.Println("agent")
 			},
-			func(agent *api.Catalog) {
+			func(_ *api.Catalog) {
 				fmt.Println("catalog")
 			},
-			func(agent *api.Health) {
+			func(_ *api.Health) {
 				fmt.Println("health")
 			},
 		),

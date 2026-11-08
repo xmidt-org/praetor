@@ -235,7 +235,7 @@ func (r *registrar) Register(ctx context.Context) error {
 	return nil
 }
 
-func (r *registrar) Deregister(ctx context.Context) error {
+func (r *registrar) Deregister(_ context.Context) error {
 	defer r.lock.Unlock()
 	r.lock.Lock()
 

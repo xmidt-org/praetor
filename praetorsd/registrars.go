@@ -43,11 +43,12 @@ func NewRegistrars(definitions *Definitions, opts ...RegistrarOption) (Registrar
 
 	if definitions != nil {
 		for def := range definitions.all() {
-			if registrar, err := newRegistrar(def, opts...); err != nil {
+			registrar, err := newRegistrar(def, opts...)
+			if err != nil {
 				return nil, err
-			} else {
-				r.all = append(r.all, registrar)
 			}
+
+			r.all = append(r.all, registrar)
 		}
 	}
 
@@ -67,10 +68,10 @@ func (rs *registrars) State() (current map[ServiceID]State) {
 	return
 }
 
-func (rs *registrars) SetState(new State) (previous map[ServiceID]State) {
+func (rs *registrars) SetState(state State) (previous map[ServiceID]State) {
 	previous = make(map[ServiceID]State, len(rs.all))
 	for _, r := range rs.all {
-		previous[r.ServiceID()] = r.SetState(new)
+		previous[r.ServiceID()] = r.SetState(state)
 	}
 
 	return

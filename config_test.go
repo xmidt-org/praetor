@@ -56,7 +56,7 @@ func (suite *ConfigTestSuite) testNewAPIConfigSimple() {
 	suite.Equal(api.TLSConfig{}, cfg.TLSConfig)
 }
 
-func (suite *ConfigTestSuite) testNewAPIConfigHttpAuth() {
+func (suite *ConfigTestSuite) testNewAPIConfigHTTPAuth() {
 	src := suite.newSimpleConfig()
 	src.BasicAuth.UserName = "user"
 	src.BasicAuth.Password = "password"
@@ -103,7 +103,7 @@ func (suite *ConfigTestSuite) testNewAPIConfigTLS() {
 
 func (suite *ConfigTestSuite) TestNewAPIConfig() {
 	suite.Run("Simple", suite.testNewAPIConfigSimple)
-	suite.Run("HttpAuth", suite.testNewAPIConfigHttpAuth)
+	suite.Run("HttpAuth", suite.testNewAPIConfigHTTPAuth)
 	suite.Run("TLS", suite.testNewAPIConfigTLS)
 }
 

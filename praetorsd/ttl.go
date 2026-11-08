@@ -40,7 +40,7 @@ func (t *ttl) run(ctx context.Context) {
 	uo := t.def.updateOptions.WithContext(ctx)
 
 	for {
-		t.update(uo) // TODO: what to do with the error?
+		_ = t.update(uo) // TODO: what to do with the error?
 
 		// be a little more responsive:  don't bother
 		// creating a timer if it's not necessary
